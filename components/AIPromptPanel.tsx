@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 interface AIPromptPanelProps {
   onGenerate: (prompt: string) => void;
   isGenerating: boolean;
+  streamingXml?: string;
 }
 
 const examplePrompts = [
@@ -15,8 +16,28 @@ const examplePrompts = [
   "Design a data flow diagram for a social media application",
 ];
 
-export default function AIPromptPanel({ onGenerate, isGenerating }: AIPromptPanelProps) {
+export default function AIPromptPanel({ onGenerate, isGenerating, streamingXml }: AIPromptPanelProps) {
   const [prompt, setPrompt] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll preview to bottom as content streams
+  useEffect(() => {
+    if (previewRef.current && streamingXml) {
+      previewRef.current.scrollTop = previewRef.current.scrollHeight;
+    }
+  }, [streamingXml]);
+
+  // Show preview when streaming starts, hide when done
+  useEffect(() => {
+    if (streamingXml && streamingXml.length > 0) {
+      setShowPreview(true);
+    } else if (!isGenerating && showPreview) {
+      // Fade out preview after generation completes
+      const timer = setTimeout(() => setShowPreview(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [streamingXml, isGenerating, showPreview]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +89,29 @@ export default function AIPromptPanel({ onGenerate, isGenerating }: AIPromptPane
           </button>
         </form>
 
+        {/* Streaming Preview Panel */}
+        {showPreview && (
+          <div className="mb-6 border border-blue-200 rounded-lg bg-blue-50 overflow-hidden">
+            <div className="bg-blue-100 px-3 py-2 border-b border-blue-200 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <span className="text-xs font-medium text-blue-700">
+                  {isGenerating ? "Streaming XML..." : "Generation Complete"}
+                </span>
+              </div>
+              <span className="text-xs text-blue-600">
+                {streamingXml?.length || 0} chars
+              </span>
+            </div>
+            <div 
+              ref={previewRef}
+              className="p-3 max-h-48 overflow-y-auto bg-white font-mono text-xs text-gray-700 whitespace-pre-wrap break-all"
+            >
+              {streamingXml || "Waiting for data..."}
+            </div>
+          </div>
+        )}
+
         <div className="border-t border-gray-200 pt-6">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">Example Prompts</h3>
           <div className="space-y-2">
@@ -98,6 +142,10 @@ export default function AIPromptPanel({ onGenerate, isGenerating }: AIPromptPane
             <li className="flex items-start">
               <span className="text-blue-600 mr-2">•</span>
               <span>You can edit the generated diagram after creation</span>
+            </li>
+            <li className="flex items-start">
+              <span className="text-blue-600 mr-2">•</span>
+              <span>Watch the XML stream in real-time as the AI generates your diagram</span>
             </li>
           </ul>
         </div>

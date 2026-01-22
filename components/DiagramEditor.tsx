@@ -15,6 +15,8 @@ export default function DiagramEditor({ xml, onChange }: DiagramEditorProps) {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
 
+  console.log("[DiagramEditor] XML updated:", xml.length, "chars");
+
   const handleSave = (data: any) => {
     const xmlData = typeof data === 'string' ? data : data.xml || '';
     onChange(xmlData);
@@ -66,6 +68,7 @@ export default function DiagramEditor({ xml, onChange }: DiagramEditorProps) {
         </div>
         <div className="flex-1 relative">
           <DrawIoEmbed
+            key={xml.substring(0, 100)} // Force re-render when XML changes
             xml={xml}
             onSave={handleSave}
           />
